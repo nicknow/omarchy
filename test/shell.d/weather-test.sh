@@ -117,9 +117,10 @@ assert(
   'weather caps geocoding and forecast array iteration'
 )
 assert(
-  panelSource.includes('property int forecastRunSeq: 0') &&
-    panelSource.includes('forecastProc.seq !== forecastRunSeq'),
-  'weather stages both fetch signals so a superseded run cannot apply'
+  panelSource.includes('if (forecastProcExit === -1 || forecastOutput === null) return') &&
+    panelSource.includes('root.forecastProcExit = -1') &&
+    panelSource.includes('root.forecastOutput = null'),
+  'weather stages both fetch signals and resets them when a run starts'
 )
 assert(
   panelSource.includes('forecastExpectedStop = false') &&

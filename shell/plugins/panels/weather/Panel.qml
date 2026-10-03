@@ -133,29 +133,24 @@ Panel {
   // Staging area for each curl fetch. Quickshell's Process exposes the exit
   // code only through `onExited`, and offers no guaranteed order between it
   // and StdioCollector's `onStreamFinished` (see panels/wifiqr), so a fetch
-  // records both signals plus a run counter, and the `apply*` functions parse
-  // only once this run delivered both: -1 / null mean "not observed yet for
-  // the current run", and a `seq` mismatch drops late signals from a
-  // superseded run. The *ExpectedStop flags steer the kill path: a fetch we
-  // stopped ourselves must not schedule a retry, and stays lifted only until
-  // the next launch (the kill/stream order is not guaranteed either).
-  property int forecastRunSeq: 0
+  // records both signals, and the `apply*` functions parse only once this run
+  // delivered both: -1 / null mean "not observed yet for the current run",
+  // reset each time the process starts. The *ExpectedStop flags steer the
+  // kill path: a fetch we stopped ourselves must not schedule a retry, and
+  // stays lifted only until the next launch (the kill/stream order is not
+  // guaranteed either).
   property int forecastProcExit: -1
   property var forecastOutput: null
   property bool forecastExpectedStop: false
-  property int dailyForecastRunSeq: 0
   property int dailyForecastProcExit: -1
   property var dailyForecastOutput: null
   property bool dailyForecastExpectedStop: false
-  property int geocodeRunSeq: 0
   property int geocodeProcExit: -1
   property var geocodeOutput: null
-  property int locationRunSeq: 0
   property int locationProcExit: -1
   property var locationOutput: null
 
   function applyForecast() {
-    if (forecastProc.seq !== forecastRunSeq) return
     if (forecastProcExit === -1 || forecastOutput === null) return
     if (forecastProcExit !== 0 || !forecastOutput) {
       root.scheduleForecastRetry()
@@ -181,7 +176,6 @@ Panel {
   }
 
   function applyDailyForecast() {
-    if (dailyForecastProc.seq !== dailyForecastRunSeq) return
     if (dailyForecastProcExit === -1 || dailyForecastOutput === null) return
     if (dailyForecastProcExit !== 0 || !dailyForecastOutput) {
       root.scheduleDailyForecastRetry()
@@ -203,7 +197,6 @@ Panel {
   }
 
   function applyGeocode() {
-    if (geocodeProc.seq !== geocodeRunSeq) return
     if (geocodeProcExit === -1 || geocodeOutput === null) return
     if (geocodeProcExit !== 0) {
       root.locationSuggestions = []
@@ -216,7 +209,6 @@ Panel {
   }
 
   function applyLocation() {
-    if (locationProc.seq !== locationRunSeq) return
     if (locationProcExit === -1 || locationOutput === null) return
     if (locationProcExit !== 0) return
     var raw = String(locationOutput || "").trim()
@@ -428,12 +420,9 @@ Panel {
 
   Process {
     id: forecastProc
-    property int seq: 0
     command: ["curl", "-fsS", "--connect-timeout", "4", "--max-time", "10", "--max-filesize", "1048576", "https://wttr.in/" + root.locationQuery + "?format=j1"]
     onRunningChanged: {
       if (running) {
-        root.forecastRunSeq++
-        seq = root.forecastRunSeq
         root.forecastProcExit = -1
         root.forecastOutput = null
         root.forecastExpectedStop = false
@@ -485,11 +474,8 @@ Panel {
 
   Process {
     id: dailyForecastProc
-    property int seq: 0
     onRunningChanged: {
       if (running) {
-        root.dailyForecastRunSeq++
-        seq = root.dailyForecastRunSeq
         root.dailyForecastProcExit = -1
         root.dailyForecastOutput = null
         root.dailyForecastExpectedStop = false
@@ -512,11 +498,8 @@ Panel {
 
   Process {
     id: geocodeProc
-    property int seq: 0
     onRunningChanged: {
       if (running) {
-        root.geocodeRunSeq++
-        seq = root.geocodeRunSeq
         root.geocodeProcExit = -1
         root.geocodeOutput = null
       }
@@ -560,12 +543,9 @@ Panel {
 
   Process {
     id: locationProc
-    property int seq: 0
     command: ["curl", "-fsS", "--connect-timeout", "3", "--max-time", "4", "--max-filesize", "8192", "https://wttr.in/?format=%l"]
     onRunningChanged: {
       if (running) {
-        root.locationRunSeq++
-        seq = root.locationRunSeq
         root.locationProcExit = -1
         root.locationOutput = null
       }
