@@ -430,7 +430,7 @@ Panel {
     id: forecastProc
     property int seq: 0
     command: ["curl", "-fsS", "--connect-timeout", "4", "--max-time", "10", "--max-filesize", "1048576", "https://wttr.in/" + root.locationQuery + "?format=j1"]
-    onRunningChanged: function(running) {
+    onRunningChanged: {
       if (running) {
         root.forecastRunSeq++
         seq = root.forecastRunSeq
@@ -486,7 +486,7 @@ Panel {
   Process {
     id: dailyForecastProc
     property int seq: 0
-    onRunningChanged: function(running) {
+    onRunningChanged: {
       if (running) {
         root.dailyForecastRunSeq++
         seq = root.dailyForecastRunSeq
@@ -513,7 +513,7 @@ Panel {
   Process {
     id: geocodeProc
     property int seq: 0
-    onRunningChanged: function(running) {
+    onRunningChanged: {
       if (running) {
         root.geocodeRunSeq++
         seq = root.geocodeRunSeq
@@ -562,7 +562,7 @@ Panel {
     id: locationProc
     property int seq: 0
     command: ["curl", "-fsS", "--connect-timeout", "3", "--max-time", "4", "--max-filesize", "8192", "https://wttr.in/?format=%l"]
-    onRunningChanged: function(running) {
+    onRunningChanged: {
       if (running) {
         root.locationRunSeq++
         seq = root.locationRunSeq

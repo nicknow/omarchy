@@ -122,9 +122,16 @@ assert(
   'weather stages both fetch signals so a superseded run cannot apply'
 )
 assert(
-  panelSource.includes('onRunningChanged: function(running) {') &&
-    panelSource.includes('forecastExpectedStop'),
+  panelSource.includes('forecastExpectedStop = false') &&
+    panelSource.includes('dailyForecastExpectedStop = false'),
   'weather drops expectedly-stopped fetch runs without a retry'
+)
+// Quickshell's runningChanged carries no arguments, so a handler parameter
+// named `running` shadows the property with undefined and the reset never runs.
+assert(
+  (panelSource.match(/onRunningChanged: \{\n\s+if \(running\) \{/g) || []).length === 4 &&
+    !/onRunningChanged: function\s*\(/.test(panelSource),
+  'weather fetch reset handlers read the running property rather than a signal argument'
 )
 // The bar identifies a panel by the widget in its slot, so the nested panel
 // has to present the host widget rather than itself — otherwise the
