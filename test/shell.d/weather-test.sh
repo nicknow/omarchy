@@ -127,6 +127,13 @@ assert(
     panelSource.includes('dailyForecastExpectedStop = false'),
   'weather drops expectedly-stopped fetch runs without a retry'
 )
+// Process.running stays true until a stopped child exits, so the refresh queued
+// beside the stop finds it running; the exit has to start the new fetch.
+assert(
+  /if \(root\.forecastExpectedStop\) \{\n\s+Qt\.callLater\(root\.refresh\)/.test(panelSource) &&
+    /if \(root\.dailyForecastExpectedStop\) \{\n\s+Qt\.callLater\(root\.refresh\)/.test(panelSource),
+  'weather refetches once a fetch stopped for a location change has exited'
+)
 // Quickshell's runningChanged carries no arguments, so a handler parameter
 // named `running` shadows the property with undefined and the reset never runs.
 assert(

@@ -136,9 +136,9 @@ Panel {
   // records both signals, and the `apply*` functions parse only once this run
   // delivered both: -1 / null mean "not observed yet for the current run",
   // reset each time the process starts. The *ExpectedStop flags steer the
-  // kill path: a fetch we stopped ourselves must not schedule a retry, and
-  // stays lifted only until the next launch (the kill/stream order is not
-  // guaranteed either).
+  // kill path: a fetch we stopped ourselves refreshes once it has exited
+  // rather than retrying, since `running` stays true until the child is gone,
+  // and the flag stays lifted only until the next launch.
   property int forecastProcExit: -1
   property var forecastOutput: null
   property bool forecastExpectedStop: false
@@ -424,7 +424,10 @@ Panel {
       }
     }
     onExited: function(exitCode) {
-      if (root.forecastExpectedStop) return
+      if (root.forecastExpectedStop) {
+        Qt.callLater(root.refresh)
+        return
+      }
       root.forecastProcExit = exitCode
       root.applyForecast()
     }
@@ -477,7 +480,10 @@ Panel {
       }
     }
     onExited: function(exitCode) {
-      if (root.dailyForecastExpectedStop) return
+      if (root.dailyForecastExpectedStop) {
+        Qt.callLater(root.refresh)
+        return
+      }
       root.dailyForecastProcExit = exitCode
       root.applyDailyForecast()
     }
