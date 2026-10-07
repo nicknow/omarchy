@@ -141,13 +141,31 @@ assert(
     !/onRunningChanged: function\s*\(/.test(panelSource),
   'weather fetch reset handlers read the running property rather than a signal argument'
 )
-// A failed search must still start the query typed while it was in flight.
-const applyGeocodeSource = (panelSource.match(/function applyGeocode\(\) \{[\s\S]*?\n  \}\n/) || [''])[0]
-assert(
-  applyGeocodeSource.includes('Qt.callLater(root.startGeocode)') &&
-    (applyGeocodeSource.match(/\breturn\b/g) || []).length === 1,
-  'weather starts a queued location search after a failed one'
-)
+// Run applyGeocode against a stand-in panel: a failed search must still start
+// the query typed while it was in flight, and a successful one must apply.
+const applyGeocodeBody = (panelSource.match(/function applyGeocode\(\) \{([\s\S]*?)\n  \}\n/) || [])[1] || 'throw new Error("applyGeocode not found")'
+const runApplyGeocode = (exitCode, output) => {
+  const queued = []
+  const panel = {
+    geocodeProcExit: exitCode, geocodeOutput: output, editingLocation: true,
+    geocodePendingQuery: 'London', geocodeActiveQuery: 'Lon',
+    locationSuggestions: null, suggestionIndex: 3, startGeocode: () => {},
+    Model: weather, Qt: { callLater: (fn) => queued.push(fn) }
+  }
+  panel.root = panel
+  new Function('panel', `with (panel) {${applyGeocodeBody}}`)(panel)
+  return { panel, queued }
+}
+const londonResults = JSON.stringify({ results: [{ name: 'London', latitude: 51.5, longitude: -0.12 }] })
+const failedSearch = runApplyGeocode(28, '')
+assert(failedSearch.queued.length === 1 && failedSearch.queued[0] === failedSearch.panel.startGeocode, 'weather starts a queued location search after a failed one')
+assertDeepEqual(failedSearch.panel.locationSuggestions, [], 'weather shows no suggestions from a failed search')
+const truncatedSearch = runApplyGeocode(63, londonResults)
+assertDeepEqual(truncatedSearch.panel.locationSuggestions, [], 'weather ignores a parseable body from a failed transfer')
+const goodSearch = runApplyGeocode(0, londonResults)
+assertEqual(goodSearch.panel.locationSuggestions.length, 1, 'weather applies a successful search')
+assert(goodSearch.queued.length === 1, 'weather starts a queued location search after a successful one')
+assert(runApplyGeocode(-1, londonResults).panel.locationSuggestions === null, 'weather waits for both fetch signals before applying a search')
 // The bar identifies a panel by the widget in its slot, so the nested panel
 // has to present the host widget rather than itself — otherwise the
 // open-panel dot never lights and Tab cannot leave the panel.
