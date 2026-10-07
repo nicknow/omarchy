@@ -134,6 +134,13 @@ assert(
     !/onRunningChanged: function\s*\(/.test(panelSource),
   'weather fetch reset handlers read the running property rather than a signal argument'
 )
+// A failed search must still start the query typed while it was in flight.
+const applyGeocodeSource = (panelSource.match(/function applyGeocode\(\) \{[\s\S]*?\n  \}\n/) || [''])[0]
+assert(
+  applyGeocodeSource.includes('Qt.callLater(root.startGeocode)') &&
+    (applyGeocodeSource.match(/\breturn\b/g) || []).length === 1,
+  'weather starts a queued location search after a failed one'
+)
 // The bar identifies a panel by the widget in its slot, so the nested panel
 // has to present the host widget rather than itself — otherwise the
 // open-panel dot never lights and Tab cannot leave the panel.

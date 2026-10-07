@@ -198,12 +198,7 @@ Panel {
 
   function applyGeocode() {
     if (geocodeProcExit === -1 || geocodeOutput === null) return
-    if (geocodeProcExit !== 0) {
-      root.locationSuggestions = []
-      root.suggestionIndex = 0
-      return
-    }
-    root.locationSuggestions = root.editingLocation ? Model.parseGeocodingResults(geocodeOutput) : []
+    root.locationSuggestions = root.editingLocation && geocodeProcExit === 0 ? Model.parseGeocodingResults(geocodeOutput) : []
     root.suggestionIndex = 0
     if (root.geocodePendingQuery !== root.geocodeActiveQuery) Qt.callLater(root.startGeocode)
   }
